@@ -1,26 +1,6 @@
 const db = require("./db.js");
 
-// // constructor
-// const Product = function(product) {
-//   this.name_product = product.name_product;
-//   this.price = product.price;
-//   this.avatar = product.avatar;
-// };
 
-// Product.getAll = (result) => {
-//     let query = "SELECT * FROM product";
-//     sql.query(query, (err, res) => {
-//       if (err) {
-//         console.log("error: ", err);
-//         result(null, err);
-//         return;
-//       }
-//       console.log("product: ", res);
-//       result(null, res);
-//     });
-//   };
-
-//   module.exports = Product;  
 
 exports.getProducts = (result) => {
     db.query("SELECT * FROM product", (err, results) => {             
@@ -45,27 +25,26 @@ exports.getProductById = (id, result) => {
 }
  
 // Insert Product to Database
-exports.insertProduct = (data, result) => {
-    db.query("INSERT INTO product SET ?", [data], (err, results) => {             
-        if(err) {
-            console.log(err);
-            result(err, null);
-        } else {
-            result(null, results);
-        }
-    });   
+exports.insertProduct =  (data,image, result) => {
+    db.query(`INSERT INTO product (name_product, price, qty, cat_id, image) VALUES(?,?,?,?,?)`, [
+        data.name_product,
+        data.price,
+        data.qty,
+        data.cat_id,
+        image
+
+    ]);   
 }
  
 // Update Product to Database
-exports.updateProductById = (data, id, result) => {
-    db.query("UPDATE product SET name_product = ?, price = ? WHERE id = ?", [data.name_product, data.price, id], (err, results) => {             
-        if(err) {
-            console.log(err);
-            result(err, null);
-        } else {
-            result(null, results);
-        }
-    });   
+exports.updateProductById = (data,image, id, result) => {
+    db.query("UPDATE product SET name_product = ?, price = ?, qty=?, cat_id = ?, image = ? WHERE id = ?", [
+        data.name_product, 
+        data.price, 
+        data.qty,
+        data.cat_id, 
+        image, id
+    ]);   
 }
  
 // Delete Product to Database
@@ -77,5 +56,19 @@ exports.deleteProductById = (id, result) => {
         } else {
             result(null, results);
         }
+    });  
+}
+
+//get product by cat_id
+exports.getProductByCatId = (id, result) => {
+     db.query("SELECT * FROM product WHERE cat_id = ?", [id], (err, results) => {             
+        if(err) {
+            console.log(err);
+            result(err, null);
+        } else {
+            result(null, results);
+        }
     });   
 }
+  
+

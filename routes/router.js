@@ -1,139 +1,86 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const uuid = require('uuid');
-const jwt = require('jsonwebtoken');
-const db = require('../models/db.js');
-const userMiddleware = require('../middleware/users.js');
-
-//product
-const { showProducts, showProductById, createProduct, updateProduct, deleteProduct } = require ("../controllers/product.controller.js");
 
 
-//http://localhost:8000/api/sign-up
-router.post('/sign-up', userMiddleware.validateRegister, (req, res, next) => {
-    db.query(
-      `SELECT * FROM users WHERE LOWER(username) = LOWER(${db.escape(
-        req.body.username
-        )});`,
-      (err, result) => {
-        if (result.length) {
-          return res.status(409).send({
-            msg: 'Tài khoản đã được sử dụng'
-          });
-        } else {
-          // username is available
-          bcrypt.hash(req.body.password, 10, (err, hash) => {
-            if (err) {
-              return res.status(500).send({
-                msg: err
-              });
-            } else {
-              // has hashed pw => add to database
-              db.query(
-                `INSERT INTO users (id, username, password, registered) VALUES ('${uuid.v4()}', ${db.escape(
-                    req.body.username
-                  )}, ${db.escape(hash)}, now())`,
-                (err, result) => {
-                  if (err) {
-                    throw err;
-                    return res.status(400).send({
-                      msg: err
-                    });
-                  }
-                  return res.status(201).send({
-                    msg: 'Đăng ký thành công'
-                  });
-                }
-              );
-            }
-          });
-        }
-      }
-    );
-  });
 
+const multer = require("multer");
+const path = require("path");
 
-//http://localhost:8000/api/login
-router.post('/login', (req, res, next) => {
-  db.query(
-    `SELECT * FROM users WHERE username = ${db.escape(req.body.username)};`,
-    (err, result) => {
-      // user does not exists
-      if (err) {
-        throw err;
-        return res.status(400).send({
-          msg: err
-        });
-      }
-      if (!result.length) {
-        return res.status(401).send({
-          msg: 'sai tài khoản'
-        });
-      }
-      // check password
-      bcrypt.compare(
-        req.body.password,
-        result[0]['password'],
-        (bErr, bResult) => {
-          // wrong password
-          if (bErr) {
-            throw bErr;
-            return res.status(401).send({
-              msg: 'sai mật khẩu'
-            });
-          }
-          if (bResult) {
-            const token = jwt.sign({
-                username: result[0].username,
-                userId: result[0].id
-              },
-              'SECRETKEY', {
-                expiresIn: '7d'
-              }
-            );
-            db.query(
-              `UPDATE users SET last_login = now() WHERE id = '${result[0].id}'`
-            );
-            return res.status(200).send({
-              msg: 'Logged in!',
-              token,
-              user: result[0]
-            });
-          }
-          return res.status(401).send({
-            msg: 'Username or password is incorrect!'
-          });
-        }
-      );
+const storage = multer.diskStorage({
+  destination: './upload/images',
+  filename: (req, file, cb) => {
+      return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
+  }
+});
+const upload = multer({
+  storage: storage,
+  fileFilter: function(req, file, cb) {
+    if (!file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/)) {
+        req.fileValidationError = 'Only image files are allowed!';
+        return cb(new Error('Only image files are allowed!'), false);
     }
-  );
-});
+    cb(null, true);
+},
+}).single('image');
+
+//hóa đơn
+const { showBill, showBillById, createBill, updateBill, deleteBill } = require ("../controllers/bill.controller.js");
+//phân loại
+const { showCategory, showCategoryById, createCategory, deleteCategory } = require ("../controllers/category.controller.js");
 
 
 
-//http://localhost:8000/api/secret-route
-router.get('/secret-route', (req, res, next) => {
-  res.send('This is the secret content. Only logged in users can see that!');
-});
+//sản phẩm
+const { showProducts, showProductById, createProduct, updateProduct, deleteProduct, showProductByCatId } = require ("../controllers/product.controller.js");
+//user
+const { deleteUser, showUsers , showUserById } = require('../controllers/user.controller.js');
 
 
 
 // Get All Product
 router.get('/products', showProducts);
- 
 // Get Single Product
-router.get('/products/:id', showProductById);
- 
+router.get('/products/:id', showProductById); 
+// Get all Product by cat_id
+router.get('/catproducts/:id', showProductByCatId); 
 // Create New Product
-router.post('/products', createProduct);
- 
+router.post('/products',upload, createProduct);
 // Update Product
-router.put('/products/:id', updateProduct);
- 
+router.put('/products/:id',upload, updateProduct); 
 // Delete Product
 router.delete('/products/:id', deleteProduct);
 
+
+
+// Get All User
+router.get('/users', showUsers);
+// Get Single User
+router.get('/users/:id', showUserById); 
+// Delete User
+router.delete('/users/:id', deleteUser);
+
+
+
+
+// Get All Bill
+router.get('/bills', showBill); 
+// Get Single Bill
+router.get('/bills/:id', showBillById);
+// Create New Bill
+router.post('/bills',upload, createBill);
+// Update Bill
+router.put('/bills/:id',upload, updateBill);
+// Delete Bill
+router.delete('/bills/:id', deleteBill);
+
+// Get All Category
+router.get('/category', showCategory); 
+// Get Single Category
+router.get('/category/:id', showCategoryById);
+// Create New Category
+router.post('/category',upload, createCategory);
+// Delete Category
+router.delete('/category/:id', deleteCategory);
 
 
 

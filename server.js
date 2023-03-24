@@ -1,9 +1,33 @@
 const express = require("express");
 const cors = require("cors");
-
+const bodyParser = require('body-parser');
+const LoginAdmin = require ("./routes/AdminRouter.js");
+const user = require ("./routes/UserRouter.js");
+const db = require ("./config/database.js");
+const session = require ('express-session');
 
 
 const app = express();
+
+try {
+  db.authenticate();
+  console.log('đã kết nối Database...');
+} catch (error) {
+  console.error('kết nối bị lỗi:', error);
+}
+app.use(session({
+  secret: 'secretttttkeyy', 
+  resave: false,
+  saveUninitialized: false
+}));
+
+app.use(express.static("public"));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+
+app.use('/upload', express.static('upload/images'));
 
 app.use(cors())
  app.listen(8000, function () {
@@ -30,6 +54,8 @@ app.use(express.json());
 app.use(cors());
 const router = require('./routes/router.js');
 app.use('/api', router);
+app.use(user);
+app.use(LoginAdmin);
 
 
 // set port, listen for requests
